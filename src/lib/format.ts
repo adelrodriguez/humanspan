@@ -18,22 +18,20 @@ function formatSegment(value: number, unit: UnitDefinition, long: boolean): stri
 /**
  * Format a millisecond value into a human-readable time expression.
  *
- * The returned string can be passed back into {@link parse} for
- * round-trip conversion.
+ * The returned string can be passed back into {@link parse} for round-trip conversion.
+ *
+ * @example
+ *   format(3_600_000) // "1h"
+ *   format(3_600_000, { long: true }) // "1 hour"
+ *   format(500) // "500ms"
+ *   format(5_432_100, { precision: 3 }) // "1h 30m 32s"
  *
  * @param milliseconds - The value in milliseconds to format
  * @param options - Formatting options
+ *
  * @returns A formatted time expression string
  * @throws {TypeError} If the input is not a finite number
  * @throws {RangeError} If `options.precision` is not a finite positive integer
- *
- * @example
- * ```ts
- * format(3_600_000)                        // "1h"
- * format(3_600_000, { long: true })        // "1 hour"
- * format(500)                              // "500ms"
- * format(5_432_100, { precision: 3 })      // "1h 30m 32s"
- * ```
  */
 export function format(milliseconds: number, options?: FormatOptions): string {
   if (typeof milliseconds !== "number" || !Number.isFinite(milliseconds)) {
@@ -133,7 +131,7 @@ function formatMultiPrecision(
       seg.value -= carry * ratio
 
       const prev = i > 0 ? (segments[i - 1] as { value: number; unitIdx: number }) : undefined
-      if (prev && prev.unitIdx === largerUnitIdx) {
+      if (prev?.unitIdx === largerUnitIdx) {
         prev.value += carry
       } else {
         segments.splice(i, 0, { unitIdx: largerUnitIdx, value: carry })
@@ -145,7 +143,7 @@ function formatMultiPrecision(
   // Drop trailing zero segments
   while (segments.length > 1) {
     const last = segments.at(-1)
-    if (!last || last.value !== 0) break
+    if (last?.value !== 0) break
     segments.pop()
   }
 

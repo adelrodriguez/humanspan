@@ -10,25 +10,24 @@ const SIMPLE_RE = new RegExp(
 /**
  * Check whether a string is a valid single time expression without throwing.
  *
- * Acts as a TypeScript type guard — when it returns `true`, the input is
- * narrowed to {@link TimeExpression}. Unlike {@link isCompoundTimeExpression},
- * this rejects compound expressions such as `"1h 30m"`.
- *
- * @param value - The string to validate
- * @returns `true` if the string is a valid single time expression
+ * Acts as a TypeScript type guard — when it returns `true`, the input is narrowed to
+ * {@link TimeExpression}. Unlike {@link isCompoundTimeExpression}, this rejects compound expressions
+ * such as `"1h 30m"`.
  *
  * @example
- * ```ts
- * isTimeExpression("1h")      // true
- * isTimeExpression("500ms")   // true
- * isTimeExpression("1h 30m")  // false (compound)
- * isTimeExpression("hello")   // false
+ *   isTimeExpression("1h") // true
+ *   isTimeExpression("500ms") // true
+ *   isTimeExpression("1h 30m") // false (compound)
+ *   isTimeExpression("hello") // false
  *
- * const input: string = getUserInput()
- * if (isTimeExpression(input)) {
- *   ms(input) // TypeScript knows `input` is TimeExpression
- * }
- * ```
+ *   const input: string = getUserInput()
+ *   if (isTimeExpression(input)) {
+ *     ms(input) // TypeScript knows `input` is TimeExpression
+ *   }
+ *
+ * @param value - The string to validate
+ *
+ * @returns `true` if the string is a valid single time expression
  */
 export function isTimeExpression(value: string): value is TimeExpression {
   try {
@@ -40,27 +39,24 @@ export function isTimeExpression(value: string): value is TimeExpression {
 }
 
 /**
- * Check whether a string is a valid time expression (simple or compound)
- * without throwing.
+ * Check whether a string is a valid time expression (simple or compound) without throwing.
  *
- * This accepts both simple expressions (`"1h"`) and compound expressions
- * (`"1h 30m"`).
- *
- * @param value - The string to validate
- * @returns `true` if the string is a valid time expression
+ * This accepts both simple expressions (`"1h"`) and compound expressions (`"1h 30m"`).
  *
  * @example
- * ```ts
- * isCompoundTimeExpression("1h")      // true
- * isCompoundTimeExpression("1h 30m")  // true
- * isCompoundTimeExpression("hello")   // false
- * isCompoundTimeExpression("")        // false
+ *   isCompoundTimeExpression("1h") // true
+ *   isCompoundTimeExpression("1h 30m") // true
+ *   isCompoundTimeExpression("hello") // false
+ *   isCompoundTimeExpression("") // false
  *
- * const input: string = getUserInput()
- * if (isCompoundTimeExpression(input)) {
- *   parse(input) // input is a valid time expression
- * }
- * ```
+ *   const input: string = getUserInput()
+ *   if (isCompoundTimeExpression(input)) {
+ *     parse(input) // input is a valid time expression
+ *   }
+ *
+ * @param value - The string to validate
+ *
+ * @returns `true` if the string is a valid time expression
  */
 export function isCompoundTimeExpression(value: string): boolean {
   try {
