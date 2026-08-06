@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { format } from "../lib/format"
+import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_WEEK } from "./constants"
+import { format } from "./format"
 
 describe("format", () => {
   it("should format milliseconds (short)", () => {
@@ -11,6 +12,11 @@ describe("format", () => {
     expect(format(0.4)).toBe("0ms")
     expect(format(-0.4)).toBe("0ms")
     expect(format(0.4, { long: true })).toBe("0 milliseconds")
+  })
+
+  it("should round the smallest unit when precision exceeds the available segments", () => {
+    expect(format(1.50000000000001, { precision: 2 })).toBe("2ms")
+    expect(format(-1.50000000000001, { precision: 2 })).toBe("-2ms")
   })
 
   it("should format seconds (short)", () => {
@@ -70,6 +76,15 @@ describe("format", () => {
     expect(format(1500)).toBe("2s")
     expect(format(234_234_234)).toBe("3d")
     expect(format(-234_234_234)).toBe("-3d")
+  })
+
+  it("should carry into the next unit when rounding reaches its boundary", () => {
+    expect(format(59_999)).toBe("1m")
+    expect(format(-59_999)).toBe("-1m")
+    expect(format(999.5)).toBe("1s")
+    expect(format(59.7 * MS_PER_MINUTE)).toBe("1h")
+    expect(format(364 * MS_PER_DAY)).toBe("1y")
+    expect(format(59_999, { long: true })).toBe("1 minute")
   })
 
   it("should format milliseconds (long)", () => {
@@ -238,5 +253,39 @@ describe("format", () => {
     expect(() => format(null as never)).toThrow(TypeError)
     expect(() => format([] as never)).toThrow(TypeError)
     expect(() => format({} as never)).toThrow(TypeError)
+  })
+
+  it("should restrict output to the given units", () => {
+    expect(format(12_096_000_000, { units: ["days"] })).toBe("140d")
+    expect(format(5 * MS_PER_WEEK, { precision: 2, units: ["weeks", "days"] })).toBe("5w")
+    expect(format(90_061_100, { precision: 3, units: ["hours", "minutes", "seconds"] })).toBe(
+      "25h 1m 1s"
+    )
+  })
+
+  it("should ignore the order of the units option", () => {
+    expect(format(90_061_100, { precision: 3, units: ["seconds", "hours", "minutes"] })).toBe(
+      "25h 1m 1s"
+    )
+  })
+
+  it("should format zero and sub-unit values with the smallest allowed unit", () => {
+    expect(format(0, { units: ["hours"] })).toBe("0h")
+    expect(format(1000, { units: ["hours"] })).toBe("0h")
+    expect(format(-1000, { units: ["hours"] })).toBe("0h")
+  })
+
+  it("should not carry above the largest allowed unit", () => {
+    expect(format(3_600_000, { units: ["minutes"] })).toBe("60m")
+  })
+
+  it("should combine the units option with long form", () => {
+    expect(format(5_400_000, { long: true, precision: 2, units: ["minutes"] })).toBe("90 minutes")
+  })
+
+  it("should throw for invalid units options", () => {
+    expect(() => format(1000, { units: [] })).toThrow(RangeError)
+    expect(() => format(1000, { units: ["fortnights" as never] })).toThrow(RangeError)
+    expect(() => format(1000, { units: "seconds" as never })).toThrow(RangeError)
   })
 })

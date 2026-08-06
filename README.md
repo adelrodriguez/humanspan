@@ -16,9 +16,11 @@
 
 - Convert time expressions directly into any unit — `seconds("1h")`, `days("1w")`, `ms("30s")`
 - Full suite of unit functions: `ms`, `seconds`, `minutes`, `hours`, `days`, `weeks`, `months`, `years`
-- TypeScript `TimeExpression` type with compile-time checking and runtime guards
+- Generic `convert` for compound expressions — `convert("1h 30m", "minutes")`
+- TypeScript `TimeExpression` type with compile-time checking and a runtime type guard
 - Parse compound expressions (`"1h 30m"`, `"1 day, 6 hours"`) into milliseconds
-- Format milliseconds back to human-readable strings
+- Format milliseconds back to human-readable strings, with unit restriction
+- Typed errors (`InvalidTimeExpressionError`) plus a non-throwing `safeParse`
 - Tree-shakeable named exports, zero dependencies
 
 ## Install
@@ -34,7 +36,7 @@ pnpm add humanspan
 ## Quick Start
 
 ```ts
-import { seconds, minutes, hours, days, ms } from "humanspan"
+import { seconds, minutes, hours, days, ms, convert } from "humanspan"
 
 seconds("1h") // 3600
 seconds("500ms") // 0.5
@@ -42,6 +44,7 @@ minutes("2h") // 120
 hours("1d") // 24
 days("1w") // 7
 ms("30s") // 30_000
+convert("1h 30m", "minutes") // 90
 ```
 
 ## API
@@ -62,7 +65,14 @@ hours("1d") // 24
 days("1w") // 7
 weeks("1y") // 52.1775
 months("1y") // 12
-years("365d") // 1
+years("365.25d") // 1
+```
+
+A bare number (no unit) is always interpreted as **milliseconds**, in every function:
+
+```ts
+ms("100") // 100
+seconds("1000") // 1 — "1000" means 1000 milliseconds
 ```
 
 TypeScript validates expressions at compile time:
@@ -70,22 +80,26 @@ TypeScript validates expressions at compile time:
 ```ts
 ms("1h") // ✅ compiles
 ms("hello") // ❌ type error — "hello" is not a TimeExpression
+ms("1h 30m") // ❌ type error — compound expressions go through convert or parse
 ```
 
-Use `isTimeExpression` to validate untrusted input at runtime:
+### `convert`
+
+The generic conversion primitive. Accepts any string — including compound expressions, which the `TimeExpression` type does not cover — and converts into the named unit.
 
 ```ts
-import { ms, isTimeExpression } from "humanspan"
+import { convert } from "humanspan"
 
-const input: string = getUserInput()
-if (isTimeExpression(input)) {
-  ms(input) // TypeScript knows `input` is TimeExpression
-}
+convert("90s", "minutes") // 1.5
+convert("1h 30m", "minutes") // 90
+convert("1 day, 6 hours", "hours") // 30
 ```
+
+Unit names are the long plural forms: `"milliseconds"`, `"seconds"`, `"minutes"`, `"hours"`, `"days"`, `"weeks"`, `"months"`, `"years"`.
 
 ### `parse`
 
-Parses simple or compound time expressions into milliseconds. Use this when you need to handle multi-part expressions like `"1h 30m"`.
+Parses simple or compound time expressions into milliseconds.
 
 ```ts
 import { parse } from "humanspan"
@@ -93,6 +107,19 @@ import { parse } from "humanspan"
 parse("1h") // 3_600_000
 parse("1h 30m") // 5_400_000
 parse("1 day, 6 hours, 30 minutes") // 109_800_000
+```
+
+Throws `InvalidTimeExpressionError` when the input cannot be parsed. Use `safeParse` when you prefer a `null` result over an exception.
+
+### `safeParse`
+
+Like `parse`, but returns `null` instead of throwing.
+
+```ts
+import { safeParse } from "humanspan"
+
+safeParse("1h 30m") // 5_400_000
+safeParse("hello") // null
 ```
 
 ### `format`
@@ -107,14 +134,25 @@ format(500) // "500ms"
 format(-3_600_000) // "-1h"
 format(3_600_000, { long: true }) // "1 hour"
 format(5_432_100, { precision: 3 }) // "1h 30m 32s"
+format(12_096_000_000, { units: ["days"] }) // "140d"
 ```
 
-| Option      | Type      | Default | Description                               |
-| ----------- | --------- | ------- | ----------------------------------------- |
-| `long`      | `boolean` | `false` | Use verbose format (`"1 hour"` vs `"1h"`) |
-| `precision` | `number`  | `1`     | Maximum number of unit segments to output |
+| Option      | Type         | Default   | Description                               |
+| ----------- | ------------ | --------- | ----------------------------------------- |
+| `long`      | `boolean`    | `false`   | Use verbose format (`"1 hour"` vs `"1h"`) |
+| `precision` | `number`     | `1`       | Maximum number of unit segments to output |
+| `units`     | `UnitName[]` | all units | Restrict the output to these units        |
 
-When `precision` is `1` (the default), the value is rounded to the single largest applicable unit. Higher values decompose the duration into multiple segments, with the last segment rounded to absorb the remainder. If the value has fewer meaningful segments than the requested precision, only the meaningful segments are returned.
+When `precision` is `1` (the default), the value rounds to the single largest applicable unit. Rounding carries into the next unit when it reaches the boundary (`format(59_999)` is `"1m"`, not `"60s"`). Higher precision values decompose the duration into multiple segments.
+
+The last segment absorbs the remainder and rounds it to the largest unit with a nonzero rounded value, so the round-trip error is at most half of that segment's unit. For example, `format(2 * HOUR + 500, { precision: 2 })` returns `"2h 1s"` — readable, and within 500ms of the input.
+
+Months and years are approximations (a year is 365.25 days; a month is one twelfth of that). Use the `units` option when you need exact decomposition:
+
+```ts
+format(5 * MS_PER_WEEK, { precision: 2 }) // "1mo 1w" — approximate
+format(5 * MS_PER_WEEK, { precision: 2, units: ["weeks", "days"] }) // "5w" — exact
+```
 
 The output of `format` is always a valid input for `parse`:
 
@@ -125,27 +163,32 @@ parse(expr) // 5_400_000
 
 ### `isTimeExpression`
 
-Type guard that checks if a string is a valid single time expression. Returns `false` for compound expressions like `"1h 30m"`. Never throws.
+Type guard that checks if a string is a valid single time expression in **strict form** — exactly what the `TimeExpression` type accepts. Never throws.
 
 ```ts
-import { isTimeExpression } from "humanspan"
+import { ms, isTimeExpression } from "humanspan"
 
 isTimeExpression("1h") // true
 isTimeExpression("500ms") // true
-isTimeExpression("1h 30m") // false (use isCompoundTimeExpression)
+isTimeExpression("1h 30m") // false (compound — use isValidTimeExpression)
 isTimeExpression("hello") // false
+
+const input: string = getUserInput()
+if (isTimeExpression(input)) {
+  ms(input) // TypeScript knows `input` is TimeExpression
+}
 ```
 
-### `isCompoundTimeExpression`
+### `isValidTimeExpression`
 
-Checks if a string is a valid time expression (simple or compound). Never throws.
+Checks if a string parses as a time expression, simple or compound. Accepts everything `parse` accepts. Never throws.
 
 ```ts
-import { isCompoundTimeExpression } from "humanspan"
+import { isValidTimeExpression } from "humanspan"
 
-isCompoundTimeExpression("1h") // true
-isCompoundTimeExpression("1h 30m") // true
-isCompoundTimeExpression("hello") // false
+isValidTimeExpression("1h") // true
+isValidTimeExpression("1h 30m") // true
+isValidTimeExpression("hello") // false
 ```
 
 ### Constants
@@ -166,7 +209,7 @@ import {
 
 ## Compound Expressions
 
-The parser supports multi-part expressions. Parts are summed together.
+The parser supports multi-part expressions. Segments are summed together, so duplicate units are additive and segment order never changes the result.
 
 ```ts
 // Space-separated
@@ -180,7 +223,7 @@ parse("1h30m") // 5_400_000
 
 // Long form
 parse("1 hour 30 minutes") // 5_400_000
-parse("1 year 2 weeks 5 days") // 32_594_400_000
+parse("1 year 2 weeks 5 days") // 33_199_200_000
 
 // Duplicate units are additive
 parse("1h 2h") // 10_800_000
@@ -189,12 +232,28 @@ parse("1h 2h") // 10_800_000
 parse("30m 1h") // 5_400_000
 ```
 
-Malformed delimiter punctuation is rejected (`",1h"`, `"1h,"`, `"1h,,30m"`, and `"1h, ,30m"` are invalid).
-Numeric token pattern is `[+-]?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?`, so exponent notation is supported.
+Malformed delimiter punctuation is rejected (`",1h"`, `"1h,"`, `"1h,,30m"`, and `"1h, ,30m"` are invalid). Bare numbers are only valid on their own — every segment in a compound expression must have a unit.
+
+### Signs
+
+One optional sign (`-` or `+`) can prefix the expression. It applies to the whole value. Signs on later segments are invalid.
+
+```ts
+parse("-1h 30m") // -5_400_000
+parse("+1h 30m") // 5_400_000
+parse("-1h30m") // -5_400_000
+
+parse("1h -30m") // ❌ throws — signs are not allowed on later segments
+parse("- 1h") // ❌ throws — the sign must be attached to the number
+```
+
+### Strict and lenient grammar
+
+`parse` is deliberately lenient: it is case-insensitive and allows flexible whitespace (`"1   HOUR"` parses fine). The `TimeExpression` type and the `isTimeExpression` guard use the strict form: at most one space, and units in lowercase (`"1h"`), Capitalized (`"1 Hour"`), or UPPERCASE (`"1 HOUR"`) casing. Everything the strict form accepts, `parse` accepts too.
 
 ### Supported Units
 
-All units are case-insensitive. Spaces between number and unit are optional.
+Spaces between number and unit are optional. Numeric tokens support decimals and exponent notation (`"1e3ms"`).
 
 | Unit         | Short | Aliases                                        |
 | ------------ | ----- | ---------------------------------------------- |
@@ -207,58 +266,44 @@ All units are case-insensitive. Spaces between number and unit are optional.
 | Months       | `mo`  | `months`, `month`                              |
 | Years        | `y`   | `years`, `year`, `yrs`, `yr`                   |
 
-### Signed Expressions
-
-A leading sign applies to the entire compound expression when later parts are unsigned. Explicit signs on later segments override this and are evaluated per segment.
-
-```ts
-parse("-1h 30m") // -5_400_000
-parse("+1h 30m") // 5_400_000
-parse("-1h +30m") // -1_800_000
-parse("-1h -30m") // -5_400_000
-parse("-1h 30m -10m") // -2_400_000
-parse("-1h 30m +10m") // -1_200_000
-parse("1h-30m") // 1_800_000
-parse("1h+30m") // 5_400_000
-```
-
 ## Types
 
 ```ts
-import type { TimeExpression, FormatOptions, Unit } from "humanspan"
+import type { TimeExpression, FormatOptions, Unit, UnitName } from "humanspan"
 ```
 
 - **`TimeExpression`** — A template literal type for single time expressions (`"1h"`, `"30s"`, `"500ms"`). Rejects invalid string literals at compile time. Used by unit functions (`ms`, `seconds`, etc.).
-- **`FormatOptions`** — Options for `format()` (`long`, `precision`).
-- **`Unit`** — Union of all recognized unit strings (e.g. `"hours"`, `"h"`, `"hr"`).
-
-Use the type guards to validate strings at runtime:
-
-```ts
-const input: string = getUserInput()
-if (isTimeExpression(input)) {
-  ms(input) // `input` is narrowed to TimeExpression
-}
-if (isCompoundTimeExpression(input)) {
-  parse(input) // input is a valid expression (simple or compound)
-}
-```
+- **`FormatOptions`** — Options for `format()` (`long`, `precision`, `units`).
+- **`Unit`** — Union of all recognized unit alias strings (e.g. `"hours"`, `"h"`, `"hr"`).
+- **`UnitName`** — Canonical unit names (`"seconds"`, `"minutes"`, ...) used by `convert` and the `units` format option.
 
 ## Error Handling
 
-**`parse` and unit functions:**
+**`parse`, `convert`, and unit functions:**
 
-- Throw a `TypeError` if the input is not a string, is empty, or exceeds 200 characters.
-- Return `NaN` if the string cannot be parsed.
+- Throw an `InvalidTimeExpressionError` if the input is not a string, is empty, exceeds 200 characters, or cannot be parsed. The error exposes the offending input on its `value` property.
+- `convert` also throws a `RangeError` for unknown unit names.
+
+```ts
+import { parse, InvalidTimeExpressionError } from "humanspan"
+
+try {
+  parse(userInput)
+} catch (error) {
+  if (error instanceof InvalidTimeExpressionError) {
+    console.error(error.message) // Invalid time expression: ... Received: "..."
+  }
+}
+```
+
+**`safeParse`, `isTimeExpression`, and `isValidTimeExpression`:**
+
+- Never throw. `safeParse` returns `null` for invalid input; the guards return `false`.
 
 **`format`:**
 
 - Throws a `TypeError` if the input is not a finite number (`Infinity`, `-Infinity`, `NaN`).
-- Throws a `RangeError` if `precision` is not a finite positive integer (e.g. `0`, negative numbers, `NaN`, `Infinity`, or decimals).
-
-**`isTimeExpression` and `isCompoundTimeExpression`:**
-
-- Never throw. Return `false` for any invalid input.
+- Throws a `RangeError` if `precision` is not a finite positive integer, or if `units` is empty or contains an unknown unit name.
 
 ## License
 

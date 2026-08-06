@@ -1,10 +1,33 @@
-import type { FormatOptions, UnitDefinition } from "./types"
-import { UNITS } from "./units"
+import type { FormatOptions, UnitName } from "./types"
+import { getUnitByName, UNITS, type UnitDefinition } from "./units"
 
-function getUnit(index: number): UnitDefinition {
-  const unit = UNITS.at(index)
-  if (!unit) throw new Error(`Invalid unit index: ${index}`)
-  return unit
+interface Segment {
+  unit: UnitDefinition
+  value: number
+}
+
+function isNonEmptyStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string")
+}
+
+function resolveUnits(names: readonly UnitName[] | undefined): readonly UnitDefinition[] {
+  if (names === undefined) {
+    return UNITS
+  }
+
+  if (!isNonEmptyStringArray(names)) {
+    throw new RangeError('Option "units" must be a non-empty array of unit names.')
+  }
+
+  const selected = new Set<string>()
+  for (const name of names) {
+    if (!getUnitByName(name)) {
+      throw new RangeError(`Option "units" contains an unknown unit name. Received: ${name}`)
+    }
+    selected.add(name)
+  }
+
+  return UNITS.filter((unit) => selected.has(unit.longPlural))
 }
 
 function formatSegment(value: number, unit: UnitDefinition, long: boolean): string {
@@ -18,20 +41,24 @@ function formatSegment(value: number, unit: UnitDefinition, long: boolean): stri
 /**
  * Format a millisecond value into a human-readable time expression.
  *
- * The returned string can be passed back into {@link parse} for round-trip conversion.
+ * The returned string is always a valid input for `parse`. The last output segment rounds the
+ * remainder to the largest unit with a nonzero rounded value, so the round-trip error is at most
+ * half of that segment's unit.
  *
  * @example
  *   format(3_600_000) // "1h"
  *   format(3_600_000, { long: true }) // "1 hour"
  *   format(500) // "500ms"
  *   format(5_432_100, { precision: 3 }) // "1h 30m 32s"
+ *   format(12_096_000_000, { units: ["days"] }) // "140d"
  *
  * @param milliseconds - The value in milliseconds to format
  * @param options - Formatting options
  *
  * @returns A formatted time expression string
  * @throws {TypeError} If the input is not a finite number
- * @throws {RangeError} If `options.precision` is not a finite positive integer
+ * @throws {RangeError} If `options.precision` is not a finite positive integer, or if
+ *   `options.units` is empty or contains an unknown unit name
  */
 export function format(milliseconds: number, options?: FormatOptions): string {
   if (typeof milliseconds !== "number" || !Number.isFinite(milliseconds)) {
@@ -49,54 +76,80 @@ export function format(milliseconds: number, options?: FormatOptions): string {
     )
   }
 
+  const units = resolveUnits(options?.units)
+  const smallest = units.at(-1)
+  if (!smallest) {
+    throw new RangeError('Option "units" must be a non-empty array of unit names.')
+  }
+
   if (milliseconds === 0) {
-    return formatSegment(0, getUnit(UNITS.length - 1), long)
+    return formatSegment(0, smallest, long)
   }
 
-  const isNegative = milliseconds < 0
   const abs = Math.abs(milliseconds)
+  const segments =
+    precision === 1
+      ? [pickSingleSegment(abs, units, smallest)]
+      : buildSegments(abs, precision, units, smallest)
 
-  if (precision === 1) {
-    return formatPrecisionOne(milliseconds, abs, long)
+  // Avoid a signed zero when rounding collapses the value to zero.
+  if (segments.every((segment) => segment.value === 0)) {
+    return formatSegment(0, smallest, long)
   }
 
-  return formatMultiPrecision(abs, isNegative, long, precision)
+  const body = segments.map((segment) => formatSegment(segment.value, segment.unit, long)).join(" ")
+
+  return milliseconds < 0 ? `-${body}` : body
 }
 
-function formatPrecisionOne(ms: number, abs: number, long: boolean): string {
-  const sign = ms < 0 ? -1 : 1
-
-  for (const unit of UNITS) {
-    if (abs >= unit.ms) {
-      const roundedCount = Math.round(abs / unit.ms)
-      const signedCount = roundedCount === 0 ? 0 : sign * roundedCount
-      return formatSegment(signedCount, unit, long)
-    }
-  }
-
-  const unit = getUnit(UNITS.length - 1)
-  const roundedCount = Math.round(abs / unit.ms)
-  const signedCount = roundedCount === 0 ? 0 : sign * roundedCount
-
-  return formatSegment(signedCount, unit, long)
-}
-
-function formatMultiPrecision(
+function pickSingleSegment(
   abs: number,
-  isNegative: boolean,
-  long: boolean,
-  precision: number
-): string {
+  units: readonly UnitDefinition[],
+  smallest: UnitDefinition
+): Segment {
+  let index = units.findIndex((unit) => abs >= unit.ms)
+  if (index === -1) {
+    index = units.length - 1
+  }
+
+  let unit = units[index] ?? smallest
+  let value = Math.round(abs / unit.ms)
+
+  // Carry upward: rounding can land exactly on the next larger unit
+  // (e.g. 59_999ms rounds to 60s, which is 1m).
+  while (index > 0) {
+    const larger = units[index - 1]
+    if (larger === undefined || value < larger.ms / unit.ms) {
+      break
+    }
+    index -= 1
+    unit = larger
+    value = Math.round(abs / unit.ms)
+  }
+
+  return { unit, value }
+}
+
+function buildSegments(
+  abs: number,
+  precision: number,
+  units: readonly UnitDefinition[],
+  smallest: UnitDefinition
+): Segment[] {
+  const segments: Segment[] = []
   let remaining = abs
-  const segments: Array<{ value: number; unitIdx: number }> = []
 
-  for (let i = 0; i < UNITS.length && segments.length < precision; i += 1) {
-    const unit = getUnit(i)
+  for (const unit of units) {
+    if (segments.length >= precision) {
+      break
+    }
 
-    if (segments.length === precision - 1) {
+    // The last allowed segment absorbs the remainder: pick the largest unit
+    // with a nonzero rounded value.
+    if (segments.length === precision - 1 || unit === smallest) {
       const rounded = Math.round(remaining / unit.ms)
       if (rounded > 0) {
-        segments.push({ unitIdx: i, value: rounded })
+        segments.push({ unit, value: rounded })
         break
       }
       continue
@@ -104,59 +157,58 @@ function formatMultiPrecision(
 
     const whole = Math.floor(remaining / unit.ms)
     if (whole > 0) {
-      segments.push({ unitIdx: i, value: whole })
+      segments.push({ unit, value: whole })
       remaining -= whole * unit.ms
     }
   }
 
   if (segments.length === 0) {
-    const msUnit = getUnit(UNITS.length - 1)
-    const rounded = Math.round(abs / msUnit.ms)
-    segments.push({ unitIdx: UNITS.length - 1, value: rounded })
+    segments.push({ unit: smallest, value: Math.round(abs / smallest.ms) })
   }
 
-  // Carry-over: if rounding caused overflow, propagate upward
-  for (let i = segments.length - 1; i >= 0; i -= 1) {
-    const seg = segments[i] as { value: number; unitIdx: number }
-    const unit = getUnit(seg.unitIdx)
+  applyCarry(segments, units)
 
-    const largerUnitIdx = seg.unitIdx - 1
-    if (largerUnitIdx < 0) continue
-
-    const largerUnit = getUnit(largerUnitIdx)
-    const ratio = largerUnit.ms / unit.ms
-
-    if (seg.value >= ratio) {
-      const carry = Math.floor(seg.value / ratio)
-      seg.value -= carry * ratio
-
-      const prev = i > 0 ? (segments[i - 1] as { value: number; unitIdx: number }) : undefined
-      if (prev?.unitIdx === largerUnitIdx) {
-        prev.value += carry
-      } else {
-        segments.splice(i, 0, { unitIdx: largerUnitIdx, value: carry })
-        i += 1
-      }
-    }
-  }
-
-  // Drop trailing zero segments
-  while (segments.length > 1) {
-    const last = segments.at(-1)
-    if (last?.value !== 0) break
+  // Drop trailing zero segments left behind by the carry pass.
+  while (segments.length > 1 && segments.at(-1)?.value === 0) {
     segments.pop()
   }
 
-  if (segments.length === 0) {
-    return formatSegment(0, getUnit(UNITS.length - 1), long)
+  return segments
+}
+
+// If rounding caused a segment to overflow its unit, propagate the overflow into the next larger
+// unit (e.g. ["59m", "60s"] becomes ["1h"]).
+function applyCarry(segments: Segment[], units: readonly UnitDefinition[]): void {
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    const segment = segments[i]
+    if (!segment) {
+      continue
+    }
+
+    const unitIndex = units.indexOf(segment.unit)
+    if (unitIndex <= 0) {
+      continue
+    }
+
+    const larger = units[unitIndex - 1]
+    if (!larger) {
+      continue
+    }
+
+    const ratio = larger.ms / segment.unit.ms
+    if (segment.value < ratio) {
+      continue
+    }
+
+    const carry = Math.floor(segment.value / ratio)
+    segment.value -= carry * ratio
+
+    const previous = i > 0 ? segments[i - 1] : undefined
+    if (previous?.unit === larger) {
+      previous.value += carry
+    } else {
+      segments.splice(i, 0, { unit: larger, value: carry })
+      i += 1
+    }
   }
-
-  if (segments.every((segment) => segment.value === 0)) {
-    return formatSegment(0, getUnit(UNITS.length - 1), long)
-  }
-
-  const parts = segments.map((seg) => formatSegment(seg.value, getUnit(seg.unitIdx), long))
-
-  const result = parts.join(" ")
-  return isNegative ? `-${result}` : result
 }

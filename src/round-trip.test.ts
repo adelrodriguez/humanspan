@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { format, parse, MS_PER_MONTH, MS_PER_WEEK, MS_PER_YEAR } from "../index"
-import { getUnitMs } from "../lib/units"
+import { format, MS_PER_MONTH, MS_PER_WEEK, parse } from "./index"
+import { getUnitMs } from "./lib/units"
 
 const CLEAN_VALUES = [
   0, 500, 1000, 5000, 30_000, 60_000, 300_000, 600_000, 3_600_000, 86_400_000, 604_800_000,
@@ -15,7 +15,7 @@ function getLastUnitMs(expr: string): number {
   if (!unit) throw new Error(`Cannot determine unit suffix for expression: ${expr}`)
 
   const unitMs = getUnitMs(unit.toLowerCase())
-  if (Number.isNaN(unitMs)) throw new Error(`Unsupported unit suffix in expression: ${expr}`)
+  if (unitMs === undefined) throw new Error(`Unsupported unit suffix in expression: ${expr}`)
 
   return unitMs
 }
@@ -63,32 +63,11 @@ describe("format → parse", () => {
     expect(parse(format(-5_400_000, { long: true, precision: 2 }))).toBe(-5_400_000)
   })
 
-  it("should feed format output into parse", () => {
-    expect(parse(format(3_600_000))).toBe(3_600_000)
-    expect(parse(format(86_400_000))).toBe(86_400_000)
-
-    const expr = format(5_400_000, { precision: 2 })
-    expect(parse(expr)).toBe(5_400_000)
-  })
-
-  it("should stay within precision-based rounding bounds for sampled values", () => {
-    let seed = 123_456_789
-
-    const next = () => {
-      seed = (seed * 1_664_525 + 1_013_904_223) % 2 ** 32
-      return seed / 2 ** 32
-    }
-
-    for (const precision of [1, 2, 3]) {
-      for (let i = 0; i < 250; i += 1) {
-        const value = (next() * 2 - 1) * 10 * MS_PER_YEAR
-        const expr = format(value, { precision })
-        const parsed = parse(expr)
-        const bound = getLastUnitMs(expr) / 2 + Number.EPSILON * 32
-
-        expect(Math.abs(parsed - value)).toBeLessThanOrEqual(bound)
-      }
-    }
+  it("should round-trip values formatted with restricted units", () => {
+    expect(parse(format(5 * MS_PER_WEEK, { precision: 2, units: ["weeks", "days"] }))).toBe(
+      5 * MS_PER_WEEK
+    )
+    expect(parse(format(12_096_000_000, { units: ["days"] }))).toBe(12_096_000_000)
   })
 
   it("should document expected month/week approximation at low precision", () => {
@@ -111,7 +90,6 @@ describe("format → parse", () => {
         const bound =
           getLastUnitMs(expr) / 2 + Math.abs(value) * Number.EPSILON * 8 + Number.EPSILON * 32
 
-        expect(Number.isNaN(parsed)).toBe(false)
         expect(Number.isFinite(parsed)).toBe(true)
         expect(Math.sign(parsed)).toBe(Math.sign(value))
         expect(Math.abs(parsed - value)).toBeLessThanOrEqual(bound)
