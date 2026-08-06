@@ -1,6 +1,6 @@
-# QTE
+# Humanspan
 
-QTE is a zero-dependency TypeScript package that converts human-readable time expressions to numeric durations and formats numeric durations as human-readable expressions.
+Humanspan is a zero-dependency TypeScript package that converts human-readable time expressions to numeric durations and formats numeric durations as human-readable expressions.
 
 ## Language
 
@@ -33,5 +33,5 @@ The maximum number of segments that `format` returns.
 _Avoid_: Decimal precision, accuracy
 
 **Package consumer**:
-A person or project that installs and uses QTE.
+A person or project that installs and uses Humanspan.
 _Avoid_: User, package author

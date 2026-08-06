@@ -1,4 +1,4 @@
-# qte
+# humanspan
 
 ## 0.1.1
 

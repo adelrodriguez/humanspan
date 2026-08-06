@@ -1,14 +1,14 @@
 <div align="center">
-  <h1 align="center">⏱️ <code>qte</code></h1>
+  <h1 align="center">⏱️ <code>humanspan</code></h1>
 
   <p align="center">
     <strong>Type-safe time unit conversions from human-readable expressions</strong>
   </p>
 
   <p align="center">
-    <a href="https://www.npmjs.com/package/qte"><img src="https://img.shields.io/npm/v/qte" alt="npm version"></a>
-    <a href="https://pkg-size.dev/qte"><img src="https://pkg-size.dev/badge/install/23648640" title="Install size for qte"></a>
-    <a href="https://github.com/adelrodriguez/qte/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/qte" alt="license"></a>
+    <a href="https://www.npmjs.com/package/humanspan"><img src="https://img.shields.io/npm/v/humanspan" alt="npm version"></a>
+    <a href="https://pkg-size.dev/humanspan"><img src="https://pkg-size.dev/badge/install/23648640" title="Install size for humanspan"></a>
+    <a href="https://github.com/adelrodriguez/humanspan/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/humanspan" alt="license"></a>
   </p>
 </div>
 
@@ -24,17 +24,17 @@
 ## Install
 
 ```bash
-npm install qte
+npm install humanspan
 # or
-bun add qte
+bun add humanspan
 # or
-pnpm add qte
+pnpm add humanspan
 ```
 
 ## Quick Start
 
 ```ts
-import { seconds, minutes, hours, days, ms } from "qte"
+import { seconds, minutes, hours, days, ms } from "humanspan"
 
 seconds("1h") // 3600
 seconds("500ms") // 0.5
@@ -51,7 +51,7 @@ ms("30s") // 30_000
 Convert a time expression to any unit. Each function accepts a `TimeExpression` string and returns the value in the named unit.
 
 ```ts
-import { ms, seconds, minutes, hours, days, weeks, months, years } from "qte"
+import { ms, seconds, minutes, hours, days, weeks, months, years } from "humanspan"
 
 ms("1s") // 1000
 ms("1h") // 3_600_000
@@ -75,7 +75,7 @@ ms("hello") // ❌ type error — "hello" is not a TimeExpression
 Use `isTimeExpression` to validate untrusted input at runtime:
 
 ```ts
-import { ms, isTimeExpression } from "qte"
+import { ms, isTimeExpression } from "humanspan"
 
 const input: string = getUserInput()
 if (isTimeExpression(input)) {
@@ -88,7 +88,7 @@ if (isTimeExpression(input)) {
 Parses simple or compound time expressions into milliseconds. Use this when you need to handle multi-part expressions like `"1h 30m"`.
 
 ```ts
-import { parse } from "qte"
+import { parse } from "humanspan"
 
 parse("1h") // 3_600_000
 parse("1h 30m") // 5_400_000
@@ -100,7 +100,7 @@ parse("1 day, 6 hours, 30 minutes") // 109_800_000
 Converts milliseconds to a human-readable time expression.
 
 ```ts
-import { format } from "qte"
+import { format } from "humanspan"
 
 format(3_600_000) // "1h"
 format(500) // "500ms"
@@ -128,7 +128,7 @@ parse(expr) // 5_400_000
 Type guard that checks if a string is a valid single time expression. Returns `false` for compound expressions like `"1h 30m"`. Never throws.
 
 ```ts
-import { isTimeExpression } from "qte"
+import { isTimeExpression } from "humanspan"
 
 isTimeExpression("1h") // true
 isTimeExpression("500ms") // true
@@ -141,7 +141,7 @@ isTimeExpression("hello") // false
 Checks if a string is a valid time expression (simple or compound). Never throws.
 
 ```ts
-import { isCompoundTimeExpression } from "qte"
+import { isCompoundTimeExpression } from "humanspan"
 
 isCompoundTimeExpression("1h") // true
 isCompoundTimeExpression("1h 30m") // true
@@ -161,7 +161,7 @@ import {
   MS_PER_WEEK, // 604_800_000
   MS_PER_MONTH, // 2_629_800_000
   MS_PER_YEAR, // 31_557_600_000
-} from "qte"
+} from "humanspan"
 ```
 
 ## Compound Expressions
@@ -225,7 +225,7 @@ parse("1h+30m") // 5_400_000
 ## Types
 
 ```ts
-import type { TimeExpression, FormatOptions, Unit } from "qte"
+import type { TimeExpression, FormatOptions, Unit } from "humanspan"
 ```
 
 - **`TimeExpression`** — A template literal type for single time expressions (`"1h"`, `"30s"`, `"500ms"`). Rejects invalid string literals at compile time. Used by unit functions (`ms`, `seconds`, etc.).
