@@ -9,7 +9,7 @@ ubiquitous language in these files.
 
 ### Issue tracker
 
-Issues and PRDs are tracked as GitHub issues at `adelrodriguez/qte`. See
+Issues and PRDs are tracked as GitHub issues at `adelrodriguez/humanspan`. See
 `docs/agents/issue-tracker.md`.
 
 ### Triage labels

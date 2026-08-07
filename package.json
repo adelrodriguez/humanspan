@@ -1,5 +1,5 @@
 {
-  "name": "qte",
+  "name": "humanspan",
   "version": "0.1.1",
   "description": "Parse human-readable time expressions into any unit, and format durations into human-readable strings",
   "keywords": [
@@ -12,15 +12,15 @@
     "parse",
     "time"
   ],
-  "homepage": "https://github.com/adelrodriguez/qte#readme",
+  "homepage": "https://github.com/adelrodriguez/humanspan#readme",
   "bugs": {
-    "url": "https://github.com/adelrodriguez/qte/issues"
+    "url": "https://github.com/adelrodriguez/humanspan/issues"
   },
   "license": "MIT",
   "author": "Adel Rodríguez",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adelrodriguez/qte.git"
+    "url": "git+https://github.com/adelrodriguez/humanspan.git"
   },
   "files": [
     "dist"
