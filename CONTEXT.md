@@ -17,8 +17,23 @@ One numeric value and unit within a compound time expression.
 _Avoid_: Part, token
 
 **Unit function**:
-A public conversion function named for its output unit, such as `seconds` or `days`.
+A public conversion function named for its output unit, such as `seconds` or `days`. Unit
+functions wrap `convert`.
 _Avoid_: Parser, formatter
+
+**Unit name**:
+The canonical long plural name of a unit, such as `"seconds"`. Used by `convert` and the `units`
+format option.
+_Avoid_: Unit key, unit id
+
+**Strict form**:
+The grammar that the `TimeExpression` type and the `isTimeExpression` guard accept: at most one
+space, and lowercase, Capitalized, or UPPERCASE units.
+_Avoid_: Canonical form
+
+**Lenient form**:
+The superset grammar that `parse` accepts: case-insensitive units and flexible whitespace.
+_Avoid_: Loose form
 
 **Short form**:
 An expression that uses an abbreviated unit, such as `"1h"`.
