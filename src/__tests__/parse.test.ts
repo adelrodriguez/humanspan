@@ -185,7 +185,7 @@ describe("parse", () => {
   })
 
   it("should throw for empty string", () => {
-    expect(() => parse("" as never)).toThrow(TypeError)
+    expect(() => parse("")).toThrow(TypeError)
   })
 
   it("should throw for string exceeding 200 characters", () => {

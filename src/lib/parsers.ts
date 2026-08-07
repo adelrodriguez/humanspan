@@ -34,24 +34,22 @@ function isValidGap(gap: string, isFirstPart: boolean): boolean {
 /**
  * Parse a time expression string into milliseconds.
  *
- * Accepts both simple (`"1h"`) and compound (`"1h 30m"`) expressions.
- * Parts are summed together. Duplicate units are additive.
- * Supports space separators, a single comma separator, or no separator.
- * Numeric tokens support optional exponent notation (e.g. `"1e3ms"`).
- * A leading sign on a compound expression applies to the whole expression
- * unless later parts declare their own explicit signs.
- *
- * @param value - A time expression string to parse
- * @returns The total value in milliseconds, or `NaN` if the string cannot be parsed
- * @throws {TypeError} If the input is not a string, is empty, or exceeds 200 characters
+ * Accepts both simple (`"1h"`) and compound (`"1h 30m"`) expressions. Parts are summed together.
+ * Duplicate units are additive. Supports space separators, a single comma separator, or no
+ * separator. Numeric tokens support optional exponent notation (e.g. `"1e3ms"`). A leading sign on
+ * a compound expression applies to the whole expression unless later parts declare their own
+ * explicit signs.
  *
  * @example
- * ```ts
- * parse("1h")           // 3_600_000
- * parse("30s")          // 30_000
- * parse("1h 30m")       // 5_400_000
- * parse("1 day, 6 hours, 30 minutes") // 109_800_000
- * ```
+ *   parse("1h") // 3_600_000
+ *   parse("30s") // 30_000
+ *   parse("1h 30m") // 5_400_000
+ *   parse("1 day, 6 hours, 30 minutes") // 109_800_000
+ *
+ * @param value - A time expression string to parse
+ *
+ * @returns The total value in milliseconds, or `NaN` if the string cannot be parsed
+ * @throws {TypeError} If the input is not a string, is empty, or exceeds 200 characters
  */
 export function parse(value: string): number {
   if (typeof value !== "string" || value.length === 0 || value.length > MAX_LENGTH) {
@@ -145,15 +143,14 @@ export function parse(value: string): number {
 /**
  * Parse a time expression and return the value in milliseconds.
  *
- * @param value - A time expression string
- * @returns The value in milliseconds
- *
  * @example
- * ```ts
- * ms("1s")  // 1000
- * ms("5m")  // 300_000
- * ms("1h")  // 3_600_000
- * ```
+ *   ms("1s") // 1000
+ *   ms("5m") // 300_000
+ *   ms("1h") // 3_600_000
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in milliseconds
  */
 export function ms(value: TimeExpression): number {
   return parse(value)
@@ -162,14 +159,13 @@ export function ms(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in seconds.
  *
- * @param value - A time expression string
- * @returns The value in seconds
- *
  * @example
- * ```ts
- * seconds("1h")    // 3600
- * seconds("500ms") // 0.5
- * ```
+ *   seconds("1h") // 3600
+ *   seconds("500ms") // 0.5
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in seconds
  */
 export function seconds(value: TimeExpression): number {
   return parse(value) / MS_PER_SECOND
@@ -178,14 +174,13 @@ export function seconds(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in minutes.
  *
- * @param value - A time expression string
- * @returns The value in minutes
- *
  * @example
- * ```ts
- * minutes("2h")  // 120
- * minutes("30s") // 0.5
- * ```
+ *   minutes("2h") // 120
+ *   minutes("30s") // 0.5
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in minutes
  */
 export function minutes(value: TimeExpression): number {
   return parse(value) / MS_PER_MINUTE
@@ -194,14 +189,13 @@ export function minutes(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in hours.
  *
- * @param value - A time expression string
- * @returns The value in hours
- *
  * @example
- * ```ts
- * hours("1d")   // 24
- * hours("30m")  // 0.5
- * ```
+ *   hours("1d") // 24
+ *   hours("30m") // 0.5
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in hours
  */
 export function hours(value: TimeExpression): number {
   return parse(value) / MS_PER_HOUR
@@ -210,14 +204,13 @@ export function hours(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in days.
  *
- * @param value - A time expression string
- * @returns The value in days
- *
  * @example
- * ```ts
- * days("1w")  // 7
- * days("12h") // 0.5
- * ```
+ *   days("1w") // 7
+ *   days("12h") // 0.5
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in days
  */
 export function days(value: TimeExpression): number {
   return parse(value) / MS_PER_DAY
@@ -226,14 +219,13 @@ export function days(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in weeks.
  *
- * @param value - A time expression string
- * @returns The value in weeks
- *
  * @example
- * ```ts
- * weeks("14d") // 2
- * weeks("1y")  // 52.1775
- * ```
+ *   weeks("14d") // 2
+ *   weeks("1y") // 52.1775
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in weeks
  */
 export function weeks(value: TimeExpression): number {
   return parse(value) / MS_PER_WEEK
@@ -242,14 +234,13 @@ export function weeks(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in months.
  *
- * @param value - A time expression string
- * @returns The value in months
- *
  * @example
- * ```ts
- * months("1y")  // 12
- * months("60d") // ~1.97
- * ```
+ *   months("1y") // 12
+ *   months("60d") // ~1.97
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in months
  */
 export function months(value: TimeExpression): number {
   return parse(value) / MS_PER_MONTH
@@ -258,14 +249,13 @@ export function months(value: TimeExpression): number {
 /**
  * Parse a time expression and return the value in years.
  *
- * @param value - A time expression string
- * @returns The value in years
- *
  * @example
- * ```ts
- * years("365.25d") // 1
- * years("6mo")     // 0.5
- * ```
+ *   years("365.25d") // 1
+ *   years("6mo") // 0.5
+ *
+ * @param value - A time expression string
+ *
+ * @returns The value in years
  */
 export function years(value: TimeExpression): number {
   return parse(value) / MS_PER_YEAR

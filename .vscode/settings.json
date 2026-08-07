@@ -1,13 +1,7 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "editor.formatOnSave": true,
-  "editor.formatOnPaste": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit",
-    "source.fixAll.oxc": "explicit"
-  },
   "editor.tabSize": 2,
-  "cSpell.words": ["Bunup", "Adamantite", "changesets"],
+  "cSpell.words": ["Adamantite", "Bunup", "changesets"],
   "[css]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },
@@ -32,6 +26,12 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll.oxc": "explicit"
+  },
   "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
   "oxc.typeAware": true
 }
