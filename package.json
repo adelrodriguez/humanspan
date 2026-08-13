@@ -57,9 +57,9 @@
     "adamantite": "0.34.2",
     "bunup": "0.16.32",
     "fast-check": "4.9.0",
-    "knip": "6.31.0",
-    "oxfmt": "0.62.0",
-    "oxlint": "1.77.0",
+    "knip": "6.32.1",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
     "oxlint-tsgolint": "7.0.2001",
     "typescript": "7.0.2"
   },
