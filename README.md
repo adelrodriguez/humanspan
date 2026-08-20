@@ -22,16 +22,21 @@ Humanspan is a zero-dependency TypeScript package for time expressions. Convert 
 - Formats milliseconds as short-form or long-form time expressions.
 - Checks string literals at compile time with `TimeExpression`.
 - Checks runtime values with `isTimeExpression` and `isValidTimeExpression`.
-- Returns typed errors from throwing functions and `null` from `safeParse`.
+- Throws `InvalidTimeExpressionError` or returns `null` from `safeParse`.
 - Provides tree-shakeable named exports with no runtime dependencies.
 
 ## Install Humanspan
 
 ```bash
+# npm
 npm install humanspan
-```
 
-You can also install Humanspan with `bun add humanspan` or `pnpm add humanspan`.
+# Bun
+bun add humanspan
+
+# pnpm
+pnpm add humanspan
+```
 
 ## Convert a time expression
 
@@ -47,12 +52,11 @@ ms("30s") // 30_000
 convert("1h 30m", "minutes") // 90
 ```
 
-Use `convert` or `parse` for compound time expressions:
+Use `parse` to convert a compound time expression to milliseconds:
 
 ```ts
-import { convert, parse } from "humanspan"
+import { parse } from "humanspan"
 
-convert("1h 30m", "minutes") // 90
 parse("1h 30m") // 5_400_000
 ```
 
@@ -132,7 +136,7 @@ safeParse("hello") // null
 `format` converts milliseconds to a time expression.
 
 ```ts
-import { format, MS_PER_HOUR, MS_PER_WEEK } from "humanspan"
+import { format } from "humanspan"
 
 format(3_600_000) // "1h"
 format(500) // "500ms"
@@ -150,11 +154,13 @@ format(12_096_000_000, { units: ["days"] }) // "140d"
 
 When `precision` is `1` (the default), the value rounds to the single largest applicable unit. Rounding carries into the next unit when it reaches the boundary (`format(59_999)` is `"1m"`, not `"60s"`). Higher precision values decompose the duration into multiple segments.
 
-The last segment absorbs the remainder. Humanspan rounds that remainder to the largest unit with a nonzero result. The round-trip error is at most half of the last segment's unit. For example, `format(2 * MS_PER_HOUR + 500, { precision: 2 })` returns `"2h 1s"`, which is within 500 milliseconds of the input.
+The last segment absorbs the remainder. Humanspan rounds that remainder to the largest unit with a nonzero result. The round-trip error is at most half of the last segment's unit. For example, `format(7_200_500, { precision: 2 })` returns `"2h 1s"`, which is within 500 milliseconds of the input.
 
 Months and years are approximations (a year is 365.25 days; a month is one twelfth of that). Use the `units` option when you need exact decomposition:
 
 ```ts
+import { format, MS_PER_WEEK } from "humanspan"
+
 format(5 * MS_PER_WEEK, { precision: 2 }) // "1mo 1w", an approximation
 format(5 * MS_PER_WEEK, { precision: 2, units: ["weeks", "days"] }) // "5w", exact
 ```
@@ -290,6 +296,7 @@ import type { TimeExpression, FormatOptions, Unit, UnitName } from "humanspan"
 - Is empty.
 - Exceeds 200 characters.
 - Does not match the grammar.
+- Overflows the representable range.
 
 The error stores the invalid input in its `value` property. `convert` also throws `RangeError` for an unknown unit name.
 
