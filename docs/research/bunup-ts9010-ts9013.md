@@ -1,5 +1,8 @@
 # Bunup support for TS9010 and TS9013
 
+> This document records the former Bunup build. Humanspan now uses tsdown and verifies its
+> generated declarations with `pnpm run build:verify`.
+
 Research date: 2026-08-07
 
 ## Question
