@@ -5,6 +5,108 @@ import { parse, safeParse } from "../parse"
 import { UNITS } from "../units"
 
 const aliases = UNITS.flatMap((unit) => unit.aliases)
+
+const numberTokenArbitrary = fc.oneof(
+  fc.integer({ max: 999, min: 0 }).map((value) => ({ token: String(value), value })),
+  fc
+    .record({
+      fractional: fc.integer({ max: 999, min: 0 }),
+      whole: fc.integer({ max: 99, min: 0 }),
+    })
+    .map(({ fractional, whole }) => {
+      const token = `${whole}.${String(fractional).padStart(3, "0")}`
+      return { token, value: Number(token) }
+    }),
+  fc.integer({ max: 999, min: 1 }).map((fractional) => {
+    const token = `.${String(fractional).padStart(3, "0")}`
+    return { token, value: Number(token) }
+  }),
+  fc
+    .record({
+      coefficient: fc.integer({ max: 99, min: 1 }),
+      exponent: fc.integer({ max: 3, min: 0 }),
+      exponentSign: fc.constantFrom("", "+", "-"),
+      marker: fc.constantFrom("e", "E"),
+    })
+    .map(({ coefficient, exponent, exponentSign, marker }) => {
+      const token = `${coefficient}${marker}${exponentSign}${exponent}`
+      return { token, value: Number(token) }
+    })
+)
+
+const segmentArbitrary = fc
+  .tuple(fc.constantFrom(...UNITS), numberTokenArbitrary, fc.constantFrom("", " ", "  ", "\t"))
+  .chain(([unit, number, whitespace]) =>
+    fc.constantFrom(...unit.aliases).chain((alias) =>
+      fc
+        .array(fc.boolean(), { maxLength: alias.length, minLength: alias.length })
+        .map((uppercase) => ({
+          expected: number.value * unit.ms,
+          text: `${number.token}${whitespace}${alias
+            .split("")
+            .map((character, index) => (uppercase[index] ? character.toUpperCase() : character))
+            .join("")}`,
+        }))
+    )
+  )
+
+const lenientExpressionArbitrary = fc
+  .array(segmentArbitrary, { maxLength: 4, minLength: 1 })
+  .chain((segments) =>
+    fc
+      .tuple(
+        fc.array(fc.constantFrom("", " ", "  ", "\t", "\n", ",", ", ", " , "), {
+          maxLength: segments.length - 1,
+          minLength: segments.length - 1,
+        }),
+        fc.constantFrom("", "+", "-"),
+        fc.constantFrom("", " ", "  ", "\t", "\n"),
+        fc.constantFrom("", " ", "  ", "\t", "\n")
+      )
+      .map(([separators, sign, leadingWhitespace, trailingWhitespace]) => {
+        const body = segments
+          .map((segment, index) => `${index === 0 ? "" : separators[index - 1]}${segment.text}`)
+          .join("")
+        const magnitude = segments.reduce((total, segment) => total + segment.expected, 0)
+
+        return {
+          expected: sign === "-" ? -magnitude : magnitude,
+          text: `${leadingWhitespace}${sign}${body}${trailingWhitespace}`,
+        }
+      })
+  )
+
+const longCompoundExpressionArbitrary = fc.constantFrom(...UNITS).chain((unit) =>
+  fc
+    .tuple(fc.constantFrom(...unit.aliases), fc.constantFrom("", " ", ", "))
+    .map(([alias, separator]) => {
+      const segment = `1${alias}`
+      const segmentCount = Math.floor(
+        (200 + separator.length) / (segment.length + separator.length)
+      )
+      const text = Array.from({ length: segmentCount }, () => segment).join(separator)
+
+      return {
+        expected: segmentCount * unit.ms,
+        text,
+        tooLong: `${text}${separator}${segment}`,
+      }
+    })
+)
+
+const overlongPaddedExpressionArbitrary = segmentArbitrary.chain((segment) => {
+  const paddingLength = 201 - segment.text.length
+
+  return fc.integer({ max: paddingLength, min: 0 }).map((leadingPaddingLength) => ({
+    expected: segment.expected,
+    text: `${" ".repeat(leadingPaddingLength)}${segment.text}${" ".repeat(
+      paddingLength - leadingPaddingLength
+    )}`,
+    trimmed: segment.text,
+  }))
+})
+
+// Integer counts keep every sum exact in float64, so equality properties hold exactly.
 const segmentsArbitrary = fc.array(
   fc.record({
     alias: fc.constantFrom(...aliases),
@@ -18,6 +120,70 @@ function toExpression(segments: ReadonlyArray<{ alias: string; count: number }>)
 }
 
 describe("parse", () => {
+  it("should parse generated lenient forms", () => {
+    fc.assert(
+      fc.property(lenientExpressionArbitrary, ({ expected, text }) => {
+        expect(parse(text)).toBe(expected)
+      })
+    )
+  })
+
+  it("should reject generated malformed expressions", () => {
+    fc.assert(
+      fc.property(
+        segmentArbitrary,
+        fc.constantFrom(
+          (text: string) => `,${text}`,
+          (text: string) => `${text},`,
+          (text: string) => `${text},,1ms`,
+          (text: string) => `${text} +1ms`,
+          (text: string) => `${text} -1ms`,
+          (text: string) => `+ ${text}`
+        ),
+        ({ text }, mutate) => {
+          expect(() => parse(mutate(text))).toThrow(InvalidTimeExpressionError)
+        }
+      )
+    )
+  })
+
+  it("should reject generated exponent overflow", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ max: 9, min: 1 }),
+        fc.integer({ max: 999, min: 309 }),
+        fc.constantFrom(...aliases),
+        fc.constantFrom("", "+", "-"),
+        (coefficient, exponent, alias, sign) => {
+          expect(() => parse(`${sign}${coefficient}e${exponent}${alias}`)).toThrow(
+            InvalidTimeExpressionError
+          )
+        }
+      )
+    )
+  })
+
+  it("should enforce the 200-character boundary for generated compound expressions", () => {
+    fc.assert(
+      fc.property(longCompoundExpressionArbitrary, ({ expected, text, tooLong }) => {
+        expect(text.length).toBeLessThanOrEqual(200)
+        expect(tooLong.length).toBeGreaterThan(200)
+        expect(parse(text)).toBe(expected)
+        expect(() => parse(tooLong)).toThrow(InvalidTimeExpressionError)
+      })
+    )
+  })
+
+  it("should enforce the 200-character boundary before trimming generated expressions", () => {
+    fc.assert(
+      fc.property(overlongPaddedExpressionArbitrary, ({ expected, text, trimmed }) => {
+        expect(text).toHaveLength(201)
+        expect(parse(trimmed)).toBe(expected)
+        expect(() => parse(text)).toThrow(InvalidTimeExpressionError)
+      })
+    )
+  })
+
   it("should apply a leading sign to the whole expression for generated segments", () => {
     fc.assert(
       fc.property(segmentsArbitrary, (segments) => {
