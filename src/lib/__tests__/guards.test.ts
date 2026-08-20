@@ -1,5 +1,31 @@
 import { describe, expect, it } from "bun:test"
-import { isTimeExpression, isValidTimeExpression } from "./guards"
+import fc from "fast-check"
+import { isTimeExpression, isValidTimeExpression } from "../guards"
+import { safeParse } from "../parse"
+
+describe("guard properties", () => {
+  it("should agree with safeParse for arbitrary strings", () => {
+    fc.assert(
+      fc.property(fc.string(), (value) => {
+        expect(isValidTimeExpression(value)).toBe(safeParse(value) !== null)
+
+        if (isTimeExpression(value)) {
+          expect(safeParse(value)).not.toBeNull()
+        }
+      })
+    )
+  })
+
+  it("should never allow safeParse to return a non-finite number", () => {
+    fc.assert(
+      fc.property(fc.string(), (value) => {
+        const parsed = safeParse(value)
+
+        expect(parsed === null || Number.isFinite(parsed)).toBe(true)
+      })
+    )
+  })
+})
 
 describe("isTimeExpression", () => {
   it("should return true for valid strict expressions", () => {
