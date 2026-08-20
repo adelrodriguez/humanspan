@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_WEEK } from "./constants"
-import { format } from "./format"
+import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_WEEK } from "../constants"
+import { format } from "../format"
 
 describe("format", () => {
   it("should format milliseconds (short)", () => {

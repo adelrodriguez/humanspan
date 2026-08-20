@@ -1,9 +1,61 @@
 import { describe, expect, it } from "bun:test"
-import { InvalidTimeExpressionError } from "./errors"
-import { parse, safeParse } from "./parse"
-import { UNITS } from "./units"
+import fc from "fast-check"
+import { InvalidTimeExpressionError } from "../errors"
+import { parse, safeParse } from "../parse"
+import { UNITS } from "../units"
+
+const aliases = UNITS.flatMap((unit) => unit.aliases)
+const segmentsArbitrary = fc.array(
+  fc.record({
+    alias: fc.constantFrom(...aliases),
+    count: fc.integer({ max: 999, min: 0 }),
+  }),
+  { maxLength: 5, minLength: 1 }
+)
+
+function toExpression(segments: ReadonlyArray<{ alias: string; count: number }>): string {
+  return segments.map((segment) => `${segment.count}${segment.alias}`).join(" ")
+}
 
 describe("parse", () => {
+  it("should apply a leading sign to the whole expression for generated segments", () => {
+    fc.assert(
+      fc.property(segmentsArbitrary, (segments) => {
+        const expression = toExpression(segments)
+
+        expect(parse(`-${expression}`)).toBe(-parse(expression))
+        expect(parse(`+${expression}`)).toBe(parse(expression))
+      })
+    )
+  })
+
+  it("should produce the same result for generated segments in reverse order", () => {
+    fc.assert(
+      fc.property(segmentsArbitrary, (segments) => {
+        const expression = toExpression(segments)
+        const reversedExpression = toExpression(segments.toReversed())
+
+        expect(parse(reversedExpression)).toBe(parse(expression))
+        expect(parse(`-${reversedExpression}`)).toBe(parse(`-${expression}`))
+      })
+    )
+  })
+
+  it("should add generated duplicate-unit segments", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...aliases),
+        fc.integer({ max: 999, min: 0 }),
+        fc.integer({ max: 999, min: 0 }),
+        (alias, firstCount, secondCount) => {
+          expect(parse(`${firstCount}${alias} ${secondCount}${alias}`)).toBe(
+            parse(`${firstCount + secondCount}${alias}`)
+          )
+        }
+      )
+    )
+  })
+
   it("should preserve bare numbers as milliseconds", () => {
     expect(parse("100")).toBe(100)
     expect(parse("0")).toBe(0)

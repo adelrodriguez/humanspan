@@ -1,9 +1,28 @@
 import { describe, expect, it } from "bun:test"
-import { convert, days, hours, minutes, months, ms, seconds, weeks, years } from "./convert"
-import { InvalidTimeExpressionError } from "./errors"
-import { parse } from "./parse"
+import fc from "fast-check"
+import { convert, days, hours, minutes, months, ms, seconds, weeks, years } from "../convert"
+import { InvalidTimeExpressionError } from "../errors"
+import { parse } from "../parse"
+import { UNITS } from "../units"
 
 describe("convert", () => {
+  it("should convert generated expressions from unit definitions", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...UNITS),
+        fc.constantFrom(...UNITS),
+        fc.integer({ max: 999, min: -999 }),
+        (inputUnit, outputUnit, count) => {
+          const expression = `${count}${inputUnit.short}`
+
+          expect(convert(expression, outputUnit.longPlural)).toBe(
+            (count * inputUnit.ms) / outputUnit.ms
+          )
+        }
+      )
+    )
+  })
+
   it("should convert simple expressions into the given unit", () => {
     expect(convert("90s", "minutes")).toBe(1.5)
     expect(convert("1h", "seconds")).toBe(3600)

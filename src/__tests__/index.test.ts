@@ -1,6 +1,22 @@
 import { describe, expect, it } from "bun:test"
-import { format, MS_PER_MONTH, MS_PER_WEEK, parse } from "./index"
-import { getUnitMs } from "./lib/units"
+import fc from "fast-check"
+import {
+  format,
+  isValidTimeExpression,
+  MS_PER_MONTH,
+  MS_PER_WEEK,
+  MS_PER_YEAR,
+  parse,
+} from "../index"
+import { getUnitMs, UNITS } from "../lib/units"
+
+const finiteMilliseconds = fc.double({
+  max: 10 * MS_PER_YEAR,
+  min: -10 * MS_PER_YEAR,
+  noNaN: true,
+})
+
+const unitNames = UNITS.map((unit) => unit.longPlural)
 
 const CLEAN_VALUES = [
   0, 500, 1000, 5000, 30_000, 60_000, 300_000, 600_000, 3_600_000, 86_400_000, 604_800_000,
@@ -21,6 +37,33 @@ function getLastUnitMs(expr: string): number {
 }
 
 describe("format → parse", () => {
+  it("should parse generated format output within its rounding bound", () => {
+    fc.assert(
+      fc.property(finiteMilliseconds, fc.integer({ max: 4, min: 1 }), (value, precision) => {
+        const expression = format(value, { precision })
+        const parsed = parse(expression)
+        const bound =
+          getLastUnitMs(expression) / 2 + Math.abs(value) * Number.EPSILON * 8 + Number.EPSILON * 32
+
+        expect(Math.abs(parsed - value)).toBeLessThanOrEqual(bound)
+      })
+    )
+  })
+
+  it("should produce valid generated output for all format options", () => {
+    fc.assert(
+      fc.property(
+        finiteMilliseconds,
+        fc.integer({ max: 4, min: 1 }),
+        fc.boolean(),
+        fc.subarray(unitNames, { minLength: 1 }),
+        (value, precision, long, units) => {
+          expect(isValidTimeExpression(format(value, { long, precision, units }))).toBe(true)
+        }
+      )
+    )
+  })
+
   it("should round-trip clean values at default precision", () => {
     for (const val of CLEAN_VALUES) {
       expect(parse(format(val))).toBe(val)
