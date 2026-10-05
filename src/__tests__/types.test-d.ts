@@ -103,6 +103,14 @@ declare const userInput: string
   void [bare, compact, spaced, long, signed, positive, fractional, exponent, capitalized, uppercase]
 }
 
+// Documents known limitation: `${number}` lets some strings the runtime rejects through.
+{
+  type _Hex = Expect<"0x10h" extends TimeExpression ? true : false>
+  type _Binary = Expect<"0b1s" extends TimeExpression ? true : false>
+  type _TrailingDot = Expect<"1.h" extends TimeExpression ? true : false>
+  type _LeadingSpace = Expect<" 1h" extends TimeExpression ? true : false>
+}
+
 // Returns number from parse and number | null from safeParse.
 {
   const parsed = parse(userInput)
