@@ -22,7 +22,7 @@ jobs:
       # workflow releases.
       - name: Wait for required workflows
         id: required-workflows
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           REQUIRED_WORKFLOWS: '["adamantite", "test", "build"]'
         with:
