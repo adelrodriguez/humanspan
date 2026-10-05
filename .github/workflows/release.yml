@@ -120,7 +120,8 @@ jobs:
         id: changesets
         uses: changesets/action@v2
         with:
-          publish: pnpm run release
-          title: "chore: release"
+          publish-script: pnpm run release
+          pr-title: "chore: release"
+          commit-message: "chore: release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
