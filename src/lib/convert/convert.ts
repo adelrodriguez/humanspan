@@ -1,6 +1,7 @@
-import type { TimeExpression, UnitName } from "./types"
-import { parse } from "./parse"
-import { getUnitByName } from "./units"
+import type { TimeExpression } from "../expression/types"
+import type { UnitName } from "../units/types"
+import { parse } from "../expression/parse"
+import { getUnitByName } from "../units/table"
 
 /**
  * Parse a time expression string and convert the result into the given unit.

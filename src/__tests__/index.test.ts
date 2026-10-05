@@ -8,7 +8,7 @@ import {
   MS_PER_YEAR,
   parse,
 } from "../index"
-import { getUnitMs, UNITS } from "../lib/units"
+import { getUnitMs, UNITS } from "../lib/units/table"
 
 const finiteMilliseconds = fc.double({
   max: 10 * MS_PER_YEAR,

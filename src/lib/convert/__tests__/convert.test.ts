@@ -1,9 +1,9 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
+import { InvalidTimeExpressionError } from "../../expression/errors"
+import { parse } from "../../expression/parse"
+import { UNITS } from "../../units/table"
 import { convert, days, hours, minutes, months, ms, seconds, weeks, years } from "../convert"
-import { InvalidTimeExpressionError } from "../errors"
-import { parse } from "../parse"
-import { UNITS } from "../units"
 
 describe("convert", () => {
   it("should convert generated expressions from unit definitions", () => {

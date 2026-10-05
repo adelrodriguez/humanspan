@@ -1,6 +1,6 @@
 import type { TimeExpression } from "./types"
+import { NUMBER_PATTERN, STRICT_UNIT_PATTERN } from "./grammar"
 import { safeParse } from "./parse"
-import { NUMBER_PATTERN, STRICT_UNIT_PATTERN } from "./units"
 
 // The strict grammar: exactly what the TimeExpression type accepts. One optional sign, a number,
 // at most one space, and a unit in lowercase, Capitalized, or UPPERCASE form.

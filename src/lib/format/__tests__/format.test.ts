@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_WEEK } from "../constants"
+import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_WEEK } from "../../units/constants"
 import { format } from "../format"
 
 describe("format", () => {
@@ -212,6 +212,33 @@ describe("format", () => {
 
   it("should carry over across multiple units", () => {
     expect(format(86_385_000, { precision: 2 })).toBe("1d")
+  })
+
+  it("should keep every segment after the first an integer for large values", () => {
+    const names = ["years", "months", "weeks", "days", "hours", "minutes", "seconds"] as const
+    const values = [2.7241849828496126e25, -5.425569271720871e25, 7.947915127387355e26]
+
+    for (const value of values) {
+      for (const units of [
+        names,
+        ["months", "weeks", "days"],
+        ["months", "days", "hours"],
+      ] as const) {
+        const output = format(value, { precision: 8, units })
+        const segments = output.replace(/^-/, "").split(" ").slice(1)
+
+        for (const segment of segments) {
+          expect(segment, output).toMatch(/^\d+[a-z]+$/)
+        }
+      }
+    }
+  })
+
+  it("should not add a unit to the whole count for large values", () => {
+    // Exact BigInt division gives 4_199_437_939_386_556 days and a 24_408_064ms remainder.
+    expect(format(3.6283143796299846e23, { precision: 2, units: ["days", "hours"] })).toBe(
+      "4199437939386556d 7h"
+    )
   })
 
   it("should throw for NaN", () => {
