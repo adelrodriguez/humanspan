@@ -11,7 +11,7 @@ deprecation path for existing consumers.
 - GitHub repository `adelrodriguez/qte`.
 - `humanspan` is unclaimed on npm (verified 2026-08-06). The first choice, `spans`, was rejected by the npm similarity filter at publish time.
 - References to the old name exist in: `package.json`, `README.md`,
-  `CONTEXT.md`, `CHANGELOG.md`, `AGENTS.md`, `docs/agents/issue-tracker.md`.
+  `GLOSSARY.md`, `CHANGELOG.md`, `AGENTS.md`, `docs/agents/issue-tracker.md`.
 - No references in `src/`, `scripts/`, or `.github/workflows/`.
 
 ## Steps
@@ -35,7 +35,7 @@ deprecation path for existing consumers.
       `repository.url` to use `humanspan`.
 - [ ] `README.md`: update the title, badges (npm version, pkg-size, license),
       install commands, and all import examples.
-- [ ] `CONTEXT.md`: change the title and package-name references. Update the
+- [ ] `GLOSSARY.md`: change the title and package-name references. Update the
       **Package consumer** definition.
 - [ ] `CHANGELOG.md`: change the top-level heading. Keep old entries as
       history.
