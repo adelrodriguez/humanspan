@@ -20,6 +20,13 @@ Use the default five-role triage vocabulary. See `docs/agents/triage-labels.md`.
 
 Use the single-context domain-doc layout. See `docs/agents/domain.md`.
 
+## Testing
+
+Use `pnpm test` to run tests.
+
+- Public API type changes must be covered in `src/__tests__/types.test-d.ts`.
+- Type assertions are enforced by `pnpm run check`, not Vitest.
+
 ## Changesets
 
 - Use Changesets for versioning and changelog management.
