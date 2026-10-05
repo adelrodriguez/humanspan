@@ -25,6 +25,7 @@ Use the single-context domain-doc layout. See `docs/agents/domain.md`.
 Use `pnpm test` to run tests.
 
 - Public API type changes must be covered in `src/__tests__/types.test-d.ts`.
+- Write type assertions with `expectTypeOf` from `vitest`.
 - Type assertions are enforced by `pnpm run check`, not Vitest.
 
 ## Changesets

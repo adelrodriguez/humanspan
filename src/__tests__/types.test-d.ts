@@ -1,4 +1,5 @@
 // Compile-time checks only: `pnpm run check` enforces this file, and Vitest never runs it.
+import { expectTypeOf } from "vitest"
 import {
   convert,
   days,
@@ -37,54 +38,45 @@ import {
   type Years,
 } from "../index"
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
-
-type Expect<T extends true> = T
-
 // ── Test fixtures ────────────────────────────────────────────────────────────
 declare const userInput: string
 
 // ── Positive type-level tests ────────────────────────────────────────────────
 // Derives each unit alias type from the UNITS table.
 {
-  type _Years = Expect<Equal<Years, "years" | "year" | "yrs" | "yr" | "y">>
-  type _Months = Expect<Equal<Months, "months" | "month" | "mo">>
-  type _Weeks = Expect<Equal<Weeks, "weeks" | "week" | "w">>
-  type _Days = Expect<Equal<Days, "days" | "day" | "d">>
-  type _Hours = Expect<Equal<Hours, "hours" | "hour" | "hrs" | "hr" | "h">>
-  type _Minutes = Expect<Equal<Minutes, "minutes" | "minute" | "mins" | "min" | "m">>
-  type _Seconds = Expect<Equal<Seconds, "seconds" | "second" | "secs" | "sec" | "s">>
-  type _Milliseconds = Expect<
-    Equal<Milliseconds, "milliseconds" | "millisecond" | "msecs" | "msec" | "ms">
-  >
+  expectTypeOf<Years>().toEqualTypeOf<"years" | "year" | "yrs" | "yr" | "y">()
+  expectTypeOf<Months>().toEqualTypeOf<"months" | "month" | "mo">()
+  expectTypeOf<Weeks>().toEqualTypeOf<"weeks" | "week" | "w">()
+  expectTypeOf<Days>().toEqualTypeOf<"days" | "day" | "d">()
+  expectTypeOf<Hours>().toEqualTypeOf<"hours" | "hour" | "hrs" | "hr" | "h">()
+  expectTypeOf<Minutes>().toEqualTypeOf<"minutes" | "minute" | "mins" | "min" | "m">()
+  expectTypeOf<Seconds>().toEqualTypeOf<"seconds" | "second" | "secs" | "sec" | "s">()
+  expectTypeOf<Milliseconds>().toEqualTypeOf<
+    "milliseconds" | "millisecond" | "msecs" | "msec" | "ms"
+  >()
 }
 
 // Makes Unit the union of every unit alias type.
 {
-  type _Unit = Expect<
-    Equal<Unit, Years | Months | Weeks | Days | Hours | Minutes | Seconds | Milliseconds>
-  >
+  expectTypeOf<Unit>().toEqualTypeOf<
+    Years | Months | Weeks | Days | Hours | Minutes | Seconds | Milliseconds
+  >()
 }
 
 // Makes UnitName the union of the long plural unit names.
 {
-  type _UnitName = Expect<
-    Equal<
-      UnitName,
-      "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds"
-    >
-  >
-  type _UnitNameIsUnit = Expect<UnitName extends Unit ? true : false>
+  expectTypeOf<UnitName>().toEqualTypeOf<
+    "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds"
+  >()
+  expectTypeOf<UnitName>().toExtend<Unit>()
 }
 
 // Makes UnitAnyCase cover lowercase, Capitalized, and UPPERCASE units.
 {
-  type _UnitAnyCase = Expect<Equal<UnitAnyCase, Unit | Capitalize<Unit> | Uppercase<Unit>>>
-  type _Lowercase = Expect<"ms" extends UnitAnyCase ? true : false>
-  type _Capitalized = Expect<"Hour" extends UnitAnyCase ? true : false>
-  type _Uppercase = Expect<"HOURS" extends UnitAnyCase ? true : false>
+  expectTypeOf<UnitAnyCase>().toEqualTypeOf<Unit | Capitalize<Unit> | Uppercase<Unit>>()
+  expectTypeOf<"ms">().toExtend<UnitAnyCase>()
+  expectTypeOf<"Hour">().toExtend<UnitAnyCase>()
+  expectTypeOf<"HOURS">().toExtend<UnitAnyCase>()
 }
 
 // Accepts bare numbers and units with zero or one space in TimeExpression.
@@ -105,91 +97,80 @@ declare const userInput: string
 
 // Documents known limitation: `${number}` lets some strings the runtime rejects through.
 {
-  type _Hex = Expect<"0x10h" extends TimeExpression ? true : false>
-  type _Binary = Expect<"0b1s" extends TimeExpression ? true : false>
-  type _TrailingDot = Expect<"1.h" extends TimeExpression ? true : false>
-  type _LeadingSpace = Expect<" 1h" extends TimeExpression ? true : false>
+  expectTypeOf<"0x10h">().toExtend<TimeExpression>()
+  expectTypeOf<"0b1s">().toExtend<TimeExpression>()
+  expectTypeOf<"1.h">().toExtend<TimeExpression>()
+  expectTypeOf<" 1h">().toExtend<TimeExpression>()
 }
 
 // Returns number from parse and number | null from safeParse.
 {
-  const parsed = parse(userInput)
-  const safeParsed = safeParse(userInput)
-
-  type _Parse = Expect<Equal<typeof parsed, number>>
-  type _SafeParse = Expect<Equal<typeof safeParsed, number | null>>
-  type _ParseParams = Expect<Equal<Parameters<typeof parse>, [value: string]>>
-  type _SafeParseParams = Expect<Equal<Parameters<typeof safeParse>, [value: string]>>
+  expectTypeOf(parse(userInput)).toEqualTypeOf<number>()
+  expectTypeOf(safeParse(userInput)).toEqualTypeOf<number | null>()
+  expectTypeOf(parse).parameters.toEqualTypeOf<[value: string]>()
+  expectTypeOf(safeParse).parameters.toEqualTypeOf<[value: string]>()
 }
 
 // Narrows a string to TimeExpression with isTimeExpression.
 {
   if (isTimeExpression(userInput)) {
-    type _Narrowed = Expect<Equal<typeof userInput, TimeExpression>>
+    expectTypeOf(userInput).toEqualTypeOf<TimeExpression>()
 
     ms(userInput)
   } else {
-    type _NotNarrowed = Expect<Equal<typeof userInput, string>>
+    expectTypeOf(userInput).toEqualTypeOf<string>()
   }
 }
 
 // Returns a plain boolean from isValidTimeExpression, without narrowing.
 {
-  type _Return = Expect<Equal<ReturnType<typeof isValidTimeExpression>, boolean>>
+  expectTypeOf(isValidTimeExpression).returns.toEqualTypeOf<boolean>()
 
   if (isValidTimeExpression(userInput)) {
-    type _NotNarrowed = Expect<Equal<typeof userInput, string>>
+    expectTypeOf(userInput).toEqualTypeOf<string>()
   }
 }
 
 // Accepts any string and a UnitName in convert, and returns number.
 {
-  const result = convert(userInput, "minutes")
-
-  type _Result = Expect<Equal<typeof result, number>>
-  type _Params = Expect<Equal<Parameters<typeof convert>, [value: string, unit: UnitName]>>
+  expectTypeOf(convert(userInput, "minutes")).toEqualTypeOf<number>()
+  expectTypeOf(convert).parameters.toEqualTypeOf<[value: string, unit: UnitName]>()
 }
 
 // Types each unit helper as (value: TimeExpression) => number.
 {
   type UnitHelper = (value: TimeExpression) => number
 
-  type _Ms = Expect<Equal<typeof ms, UnitHelper>>
-  type _Seconds = Expect<Equal<typeof seconds, UnitHelper>>
-  type _Minutes = Expect<Equal<typeof minutes, UnitHelper>>
-  type _Hours = Expect<Equal<typeof hours, UnitHelper>>
-  type _Days = Expect<Equal<typeof days, UnitHelper>>
-  type _Weeks = Expect<Equal<typeof weeks, UnitHelper>>
-  type _Months = Expect<Equal<typeof months, UnitHelper>>
-  type _Years = Expect<Equal<typeof years, UnitHelper>>
+  expectTypeOf(ms).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(seconds).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(minutes).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(hours).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(days).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(weeks).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(months).toEqualTypeOf<UnitHelper>()
+  expectTypeOf(years).toEqualTypeOf<UnitHelper>()
 }
 
 // Types format options and returns string from format.
 {
   const units: readonly UnitName[] = ["hours", "minutes"]
-  const result = format(5_400_000, { long: true, precision: 2, units })
 
-  type _Result = Expect<Equal<typeof result, string>>
-  type _Params = Expect<
-    Equal<Parameters<typeof format>, [milliseconds: number, options?: FormatOptions]>
-  >
-  type _Long = Expect<Equal<FormatOptions["long"], boolean | undefined>>
-  type _Precision = Expect<Equal<FormatOptions["precision"], number | undefined>>
-  type _Units = Expect<Equal<FormatOptions["units"], readonly UnitName[] | undefined>>
+  expectTypeOf(format(5_400_000, { long: true, precision: 2, units })).toEqualTypeOf<string>()
+  expectTypeOf(format).parameters.toEqualTypeOf<[milliseconds: number, options?: FormatOptions]>()
+  expectTypeOf<FormatOptions["long"]>().toEqualTypeOf<boolean | undefined>()
+  expectTypeOf<FormatOptions["precision"]>().toEqualTypeOf<number | undefined>()
+  expectTypeOf<FormatOptions["units"]>().toEqualTypeOf<readonly UnitName[] | undefined>()
 }
 
 // Exposes the invalid input on InvalidTimeExpressionError as readonly unknown.
 {
   const error = new InvalidTimeExpressionError("1 parsec", "value is not a valid time expression")
 
-  type _ExtendsError = Expect<typeof error extends Error ? true : false>
-  type _Value = Expect<Equal<typeof error.value, unknown>>
-  type _CtorParams = Expect<
-    Equal<
-      ConstructorParameters<typeof InvalidTimeExpressionError>,
-      [value: unknown, reason: string]
-    >
-  >
+  expectTypeOf(error).toExtend<Error>()
+  expectTypeOf(error.value).toBeUnknown()
+  expectTypeOf(InvalidTimeExpressionError).constructorParameters.toEqualTypeOf<
+    [value: unknown, reason: string]
+  >()
 }
 
 // Types the millisecond constants as numbers.
