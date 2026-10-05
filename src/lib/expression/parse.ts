@@ -1,5 +1,6 @@
+import { getUnitMs } from "../units/table"
 import { InvalidTimeExpressionError } from "./errors"
-import { getUnitMs, LENIENT_UNIT_PATTERN, NUMBER_PATTERN } from "./units"
+import { LENIENT_UNIT_PATTERN, NUMBER_PATTERN } from "./grammar"
 
 const MAX_LENGTH = 200
 
@@ -27,7 +28,8 @@ function isValidGap(gap: string, isFirstSegment: boolean): boolean {
  *
  * Accepts both time expressions (`"1h"`) and compound time expressions (`"1h 30m"`). Segments are
  * summed together, so duplicate units are additive and segment order does not matter. Segments can
- * be separated by whitespace, a single comma, or nothing. A bare number (no unit) is interpreted as
+ * be separated by whitespace, a single comma, or nothing. A segment with no separator before it
+ * must start with a digit, so `"1h.5m"` is invalid. A bare number (no unit) is interpreted as
  * milliseconds and is only valid on its own.
  *
  * One optional sign (`-` or `+`) can prefix the expression and applies to the whole value. Signs
@@ -95,6 +97,14 @@ export function parse(value: string): number {
 
     const numberToken = match[1] ?? ""
     const unitToken = match[2]
+
+    // Without this check, "1h.5m" reads as "1h 0.5m".
+    if (segmentCount > 0 && gap === "" && numberToken.startsWith(".")) {
+      throw new InvalidTimeExpressionError(
+        value,
+        "a segment that follows another segment with no separator must start with a digit"
+      )
+    }
 
     if (!unitToken) {
       hasBareSegment = true

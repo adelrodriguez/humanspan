@@ -21,7 +21,8 @@ export interface UnitDefinition {
 
 /**
  * The single source of truth for all supported units, ordered from largest to smallest. The alias
- * unions in `types.ts`, the parse grammar, and the format output all derive from this table.
+ * unions in `types.ts`, the parse grammar in `expression/grammar.ts`, and the format output all
+ * derive from this table.
  */
 export const UNITS = [
   {
@@ -82,42 +83,10 @@ export const UNITS = [
   },
 ] as const satisfies readonly UnitDefinition[]
 
-function escapeRegExp(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
-// Longer alternatives must come before shorter ones to prevent partial matches
-// (e.g. "months" before "mo", "minutes" before "m").
-function toAlternation(aliases: readonly string[]): string {
-  return aliases
-    .toSorted((a, b) => b.length - a.length)
-    .map((alias) => escapeRegExp(alias))
-    .join("|")
-}
-
-const UNIT_ALIASES = [...new Set(UNITS.flatMap((unit) => unit.aliases))]
-
 /**
- * Unsigned numeric token shared by the strict and lenient grammars.
+ * Every unit alias, without duplicates.
  */
-export const NUMBER_PATTERN = "\\d*\\.?\\d+(?:[eE][+-]?\\d+)?"
-
-/**
- * Case-insensitive alias alternation for the lenient parse grammar. Combine with the `i` flag.
- */
-export const LENIENT_UNIT_PATTERN = toAlternation(UNIT_ALIASES)
-
-/**
- * Exact-casing alias alternation for the strict grammar. Accepts only the casings that the
- * `TimeExpression` type accepts: lowercase, Capitalized, and UPPERCASE.
- */
-export const STRICT_UNIT_PATTERN = toAlternation([
-  ...new Set(UNIT_ALIASES.flatMap((alias) => [alias, alias.toUpperCase(), capitalize(alias)])),
-])
+export const UNIT_ALIASES: readonly string[] = [...new Set(UNITS.flatMap((unit) => unit.aliases))]
 
 const UNIT_MS_BY_ALIAS: ReadonlyMap<string, number> = new Map(
   UNITS.flatMap((unit) => unit.aliases.map((alias) => [alias, unit.ms] as const))

@@ -1,5 +1,6 @@
-import type { FormatOptions, UnitName } from "./types"
-import { getUnitByName, UNITS, type UnitDefinition } from "./units"
+import type { UnitName } from "../units/types"
+import type { FormatOptions } from "./types"
+import { getUnitByName, UNITS, type UnitDefinition } from "../units/table"
 
 interface Segment {
   unit: UnitDefinition
@@ -155,10 +156,13 @@ function buildSegments(
       continue
     }
 
-    const whole = Math.floor(remaining / unit.ms)
+    // `%` is exact for doubles, so the remainder stays in [0, unit.ms) even when the value is too
+    // large for exact integer arithmetic.
+    const rest = remaining % unit.ms
+    const whole = Math.round((remaining - rest) / unit.ms)
     if (whole > 0) {
       segments.push({ unit, value: whole })
-      remaining -= whole * unit.ms
+      remaining = rest
     }
   }
 

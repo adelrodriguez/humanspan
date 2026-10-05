@@ -1,8 +1,8 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
+import { UNITS } from "../../units/table"
 import { InvalidTimeExpressionError } from "../errors"
 import { parse, safeParse } from "../parse"
-import { UNITS } from "../units"
 
 const aliases = UNITS.flatMap((unit) => unit.aliases)
 
@@ -65,7 +65,13 @@ const lenientExpressionArbitrary = fc
       )
       .map(([separators, sign, leadingWhitespace, trailingWhitespace]) => {
         const body = segments
-          .map((segment, index) => `${index === 0 ? "" : separators[index - 1]}${segment.text}`)
+          .map((segment, index) => {
+            if (index === 0) return segment.text
+            const separator = separators[index - 1] ?? ""
+            // A segment that starts with a dot needs a separator after another segment.
+            const gap = separator === "" && segment.text.startsWith(".") ? " " : separator
+            return `${gap}${segment.text}`
+          })
           .join("")
         const magnitude = segments.reduce((total, segment) => total + segment.expected, 0)
 
@@ -298,6 +304,33 @@ describe("parse", () => {
 
   it("should parse compound expressions with no separator", () => {
     expect(parse("1h30m")).toBe(5_400_000)
+    expect(parse("1h0.5m")).toBe(3_630_000)
+  })
+
+  it("should parse a leading-dot segment after a separator", () => {
+    expect(parse("1h .5m")).toBe(3_630_000)
+    expect(parse("1h, .5m")).toBe(3_630_000)
+  })
+
+  it("should reject a leading-dot segment with no separator", () => {
+    expect(() => parse("1h.5m")).toThrow(
+      /a segment that follows another segment with no separator must start with a digit/
+    )
+    expect(() => parse("1.5h.5m")).toThrow(InvalidTimeExpressionError)
+    expect(() => parse("1.5.5h")).toThrow(InvalidTimeExpressionError)
+  })
+
+  it("should reject generated leading-dot segments with no separator", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...aliases),
+        fc.constantFrom(...aliases),
+        fc.integer({ max: 999, min: 1 }),
+        (first, second, fractional) => {
+          expect(safeParse(`1${first}.${fractional}${second}`)).toBeNull()
+        }
+      )
+    )
   })
 
   it("should parse long-form compound expressions", () => {

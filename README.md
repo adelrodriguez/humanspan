@@ -243,7 +243,7 @@ parse("1h 2h") // 10_800_000
 parse("30m 1h") // 5_400_000
 ```
 
-The parser rejects malformed delimiters such as `",1h"`, `"1h,"`, `"1h,,30m"`, and `"1h, ,30m"`. A bare number is valid only as a complete time expression. Every segment in a compound time expression must have a unit.
+The parser rejects malformed delimiters such as `",1h"`, `"1h,"`, `"1h,,30m"`, and `"1h, ,30m"`. A segment with no separator before it must start with a digit: `"1h .5m"` and `"1h0.5m"` are valid, but `"1h.5m"` is not. A bare number is valid only as a complete time expression. Every segment in a compound time expression must have a unit.
 
 ### Signs
 
