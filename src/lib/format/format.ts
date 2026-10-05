@@ -131,6 +131,20 @@ function pickSingleSegment(
   return { unit, value }
 }
 
+// Split a value into whole units and a remainder in [0, unitMs). `%` is exact for doubles. Up to
+// MAX_SAFE_INTEGER, `value - rest` is an exact multiple of the unit, so the division is exact too.
+// Above it, every double is an integer, and BigInt division gives the exact count.
+function divideByUnit(value: number, unitMs: number): { rest: number; whole: number } {
+  if (value <= Number.MAX_SAFE_INTEGER) {
+    const rest = value % unitMs
+    return { rest, whole: (value - rest) / unitMs }
+  }
+
+  const exact = BigInt(value)
+  const divisor = BigInt(unitMs)
+  return { rest: Number(exact % divisor), whole: Number(exact / divisor) }
+}
+
 function buildSegments(
   abs: number,
   precision: number,
@@ -156,10 +170,7 @@ function buildSegments(
       continue
     }
 
-    // `%` is exact for doubles, so the remainder stays in [0, unit.ms) even when the value is too
-    // large for exact integer arithmetic.
-    const rest = remaining % unit.ms
-    const whole = Math.round((remaining - rest) / unit.ms)
+    const { rest, whole } = divideByUnit(remaining, unit.ms)
     if (whole > 0) {
       segments.push({ unit, value: whole })
       remaining = rest

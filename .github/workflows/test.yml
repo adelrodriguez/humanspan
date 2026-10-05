@@ -1,13 +1,11 @@
 name: test
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     types: [opened, synchronize, reopened]
-  workflow_run:
-    workflows: ["adamantite"]
-    branches: [main]
-    types:
-      - completed
 
 permissions:
   contents: read
@@ -20,17 +18,10 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: >-
-      github.event_name == 'pull_request' ||
-      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          # A workflow_run event checks out the default branch by default. Check out the commit
-          # that passed the previous workflow instead.
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -52,15 +43,10 @@ jobs:
   compat:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: >-
-      github.event_name == 'pull_request' ||
-      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6

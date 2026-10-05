@@ -234,6 +234,13 @@ describe("format", () => {
     }
   })
 
+  it("should not add a unit to the whole count for large values", () => {
+    // Exact BigInt division gives 4_199_437_939_386_556 days and a 24_408_064ms remainder.
+    expect(format(3.6283143796299846e23, { precision: 2, units: ["days", "hours"] })).toBe(
+      "4199437939386556d 7h"
+    )
+  })
+
   it("should throw for NaN", () => {
     expect(() => format(Number.NaN)).toThrow(TypeError)
   })
