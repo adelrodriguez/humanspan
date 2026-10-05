@@ -1,5 +1,16 @@
 # humanspan
 
+## 0.3.0
+
+### Minor Changes
+
+- fdc7292: `parse` now rejects a segment that starts with a dot when no separator comes before it. Before, `"1h.5m"` was read as `"1h 0.5m"`. Write `"1h .5m"` or `"1h0.5m"` instead.
+
+### Patch Changes
+
+- fdc7292: `format` no longer outputs fractional segments, such as `"2.65w"`, for values above about 1e25 milliseconds.
+- fdc7292: Lower the minimum Node.js version from 24 to 20.0.0.
+
 ## 0.2.0
 
 ### Minor Changes
