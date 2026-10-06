@@ -27,8 +27,9 @@ format option.
 _Avoid_: Unit key, unit id
 
 **Strict form**:
-The grammar that the `TimeExpression` type and the `isTimeExpression` guard accept: at most one
-space, and lowercase, Capitalized, or UPPERCASE units.
+The grammar that the `isTimeExpression` guard accepts: at most one space, and lowercase,
+Capitalized, or UPPERCASE units. The `TimeExpression` type is a best-effort compile-time check of
+this grammar and accepts some extra strings, such as `"0x10h"`.
 _Avoid_: Canonical form
 
 **Lenient form**:

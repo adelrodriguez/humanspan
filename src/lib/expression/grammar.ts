@@ -29,7 +29,7 @@ export const LENIENT_UNIT_PATTERN = toAlternation(UNIT_ALIASES)
 
 /**
  * Exact-casing alias alternation for the strict grammar. Accepts only the casings that the
- * `TimeExpression` type accepts: lowercase, Capitalized, and UPPERCASE.
+ * `TimeExpression` type accepts for units: lowercase, Capitalized, and UPPERCASE.
  */
 export const STRICT_UNIT_PATTERN = toAlternation([
   ...new Set(UNIT_ALIASES.flatMap((alias) => [alias, alias.toUpperCase(), capitalize(alias)])),

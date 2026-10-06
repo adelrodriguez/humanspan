@@ -2,17 +2,22 @@ import type { TimeExpression } from "./types"
 import { NUMBER_PATTERN, STRICT_UNIT_PATTERN } from "./grammar"
 import { safeParse } from "./parse"
 
-// The strict grammar: exactly what the TimeExpression type accepts. One optional sign, a number,
-// at most one space, and a unit in lowercase, Capitalized, or UPPERCASE form.
+// The strict grammar: one optional sign, a number, at most one space, and a unit in lowercase,
+// Capitalized, or UPPERCASE form. This is a strict subset of the TimeExpression type, because
+// `${number}` also accepts forms such as "0x10" and " 1".
 const STRICT_RE = new RegExp(`^[+-]?(?:${NUMBER_PATTERN})(?: ?(?:${STRICT_UNIT_PATTERN}))?$`)
 
 /**
  * Check whether a string is a valid single time expression in strict form, without throwing.
  *
  * Acts as a TypeScript type guard — when it returns `true`, the input is narrowed to
- * `TimeExpression`. The check matches the type exactly: it rejects compound expressions, extra
- * whitespace, and mixed casing such as `"1mS"`, even though `parse` accepts some of these
- * leniently.
+ * `TimeExpression`. This is the exact runtime check for the strict form. It rejects compound
+ * expressions, extra whitespace, and mixed casing such as `"1mS"`, even though `parse` accepts some
+ * of these leniently.
+ *
+ * The guard accepts a strict subset of the `TimeExpression` type. Template literal types cannot
+ * express the exact number grammar, so some strings such as `"0x10h"` or `" 1h"` satisfy the type
+ * but the guard rejects them.
  *
  * @example
  *   isTimeExpression("1h") // true

@@ -174,7 +174,7 @@ parse(expr) // 5_400_000
 
 ### `isTimeExpression`
 
-`isTimeExpression` checks whether a string is one time expression in strict form. The guard accepts exactly the strings that `TimeExpression` describes and never throws.
+`isTimeExpression` checks whether a string is one time expression in strict form and never throws. It is the exact runtime check, so it accepts a strict subset of the `TimeExpression` type. Some strings, such as `"0x10h"` or `" 1h"`, satisfy the type but the guard rejects them, because template literal types cannot express the exact number grammar.
 
 ```ts
 import { ms, isTimeExpression } from "humanspan"
@@ -260,7 +260,7 @@ parse("- 1h") // Throws because the sign is not attached to the number
 
 ### Strict and lenient grammar
 
-`parse` uses the lenient form. It ignores unit case and permits flexible whitespace, so `"1   HOUR"` is valid. The `TimeExpression` type and `isTimeExpression` use the strict form. This form permits at most one space and accepts lowercase, capitalized, or uppercase units. `parse` accepts every strict-form time expression.
+`parse` uses the lenient form. It ignores unit case and permits flexible whitespace, so `"1   HOUR"` is valid. `isTimeExpression` checks the strict form exactly, and the `TimeExpression` type checks it as well as a template literal type can. This form permits at most one space and accepts lowercase, capitalized, or uppercase units. `parse` accepts every strict-form time expression.
 
 ### Supported units
 
@@ -283,7 +283,7 @@ Spaces between number and unit are optional. Numeric tokens support decimals and
 import type { TimeExpression, FormatOptions, Unit, UnitName } from "humanspan"
 ```
 
-- `TimeExpression` is a template literal type for one time expression, such as `"1h"`, `"30s"`, or `"500ms"`. Unit functions use this type and reject invalid string literals at compile time.
+- `TimeExpression` is a template literal type for one time expression, such as `"1h"`, `"30s"`, or `"500ms"`. Unit functions use this type and reject invalid string literals at compile time. The check is best-effort: some strings, such as `"0x10h"`, satisfy the type but throw at runtime. Use `isTimeExpression` for an exact check.
 - `FormatOptions` defines the `long`, `precision`, and `units` options for `format`.
 - `Unit` is a union of all unit aliases, such as `"hours"`, `"h"`, and `"hr"`.
 - `UnitName` is a union of the canonical unit names. `convert` and the `units` format option use these names.
