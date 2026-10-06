@@ -1,5 +1,11 @@
 # humanspan
 
+## 0.3.1
+
+### Patch Changes
+
+- 2bcdd76: Clarify in the docs that `isTimeExpression` accepts a strict subset of the `TimeExpression` type. Some strings, such as `"0x10h"` or `" 1h"`, satisfy the type but the guard rejects them.
+
 ## 0.3.0
 
 ### Minor Changes
