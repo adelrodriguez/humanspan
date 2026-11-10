@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { InvalidTimeExpressionError } from "../../expression/errors"
 import { parse } from "../../expression/parse"
 import { UNITS } from "../../units/table"
-import { convert, days, hours, minutes, months, ms, seconds, weeks, years } from "../convert"
+import { convert, days, hours, minutes, months, ms, seconds, weeks, years } from "../index"
 
 describe("convert", () => {
   it("should convert generated expressions from unit definitions", () => {
