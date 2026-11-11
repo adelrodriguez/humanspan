@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> `humanspan` has moved to [`@sanely/duration`](https://www.npmjs.com/package/@sanely/duration). Its code now lives in [adelrodriguez/sanely](https://github.com/adelrodriguez/sanely/tree/main/packages/duration). This repository is archived, and `humanspan` is deprecated on npm.
+
 <div align="center">
   <h1 align="center">⏱️ <code>humanspan</code></h1>
 
